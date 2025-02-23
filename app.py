@@ -8,9 +8,20 @@ from bson import ObjectId
 from datetime import datetime
 from dotenv import load_dotenv
 import os 
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 app = FastAPI()
+
+origins = [ "https://ecse3038-lab3-tester.netlify.app" ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 connection = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGODB_URL"))
 profile_db = connection.profile
@@ -70,6 +81,7 @@ async def update_tank(tank_id: str, tank_update: Tank_Update):
         tank_dictionary = tank_update.model_dump(exclude_unset=True)
         updated_tank = await profile_db["tank"].update_one({"_id":ObjectId(tank_id)},{"$set":tank_dictionary})
         updated_tank = await profile_db["tank"].find_one({"_id":ObjectId(tank_id)})
+        Profile.last_updated = datetime.now()
         return Tank(**updated_tank)
     raise HTTPException(status_code=404,detail="Tank not found")
 
@@ -94,6 +106,7 @@ async def remove_tank(tank_id:str):
     search_tank = await profile_db["tank"].find_one({"_id":ObjectId(tank_id)})
     if search_tank:
        await profile_db["tank"].delete_one({"_id":ObjectId(tank_id)})
+       Profile.last_updated = datetime.now()
        return Response(status_code=200)
     
     raise HTTPException(status_code=404,detail="tank not found")
