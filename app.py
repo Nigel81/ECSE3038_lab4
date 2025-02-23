@@ -65,11 +65,12 @@ async def create_profile(profile_request: Profile):
 
 @app.patch("/tank/{tank_id}")
 async def update_tank(tank_id: str, tank_update: Tank_Update):
-    tank_dictionary = tank_update.model_dump(exclude_unset=True)
-    updated_tank = await profile_db["tank"].update_one({"_id":ObjectId(tank_id)},{"$set":tank_dictionary})
     updated_tank = await profile_db["tank"].find_one({"_id":ObjectId(tank_id)})
     if updated_tank:
-        return Profile(**updated_tank)
+        tank_dictionary = tank_update.model_dump(exclude_unset=True)
+        updated_tank = await profile_db["tank"].update_one({"_id":ObjectId(tank_id)},{"$set":tank_dictionary})
+        updated_tank = await profile_db["tank"].find_one({"_id":ObjectId(tank_id)})
+        return Tank(**updated_tank)
     raise HTTPException(status_code=404,detail="Tank not found")
 
 @app.get("/tank")
