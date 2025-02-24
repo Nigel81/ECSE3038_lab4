@@ -25,7 +25,7 @@ app.add_middleware(
 
 connection = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGODB_URL"))
 profile_db = connection.profile
-collection = profile_db["profiles"]
+# collection = profile_db["profiles"]
 
 PyObbjectId = Annotated[str, BeforeValidator(str)]
 
