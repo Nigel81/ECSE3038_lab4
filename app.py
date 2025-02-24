@@ -25,6 +25,7 @@ app.add_middleware(
 
 connection = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGODB_URL"))
 profile_db = connection.profile
+collection = profile_db["profiles"]
 
 PyObbjectId = Annotated[str, BeforeValidator(str)]
 
@@ -81,7 +82,11 @@ async def update_tank(tank_id: str, tank_update: Tank_Update):
         tank_dictionary = tank_update.model_dump(exclude_unset=True)
         updated_tank = await profile_db["tank"].update_one({"_id":ObjectId(tank_id)},{"$set":tank_dictionary})
         updated_tank = await profile_db["tank"].find_one({"_id":ObjectId(tank_id)})
-        Profile.last_updated = datetime.now()
+        # Profile.last_updated = datetime.now()
+        profile_db["profiles"].update_many(
+            {"active": True},  # Filter for active profiles
+            {"$set": {"last_updated": datetime.now()}}  )
+
         return Tank(**updated_tank)
     raise HTTPException(status_code=404,detail="Tank not found")
 
@@ -96,7 +101,10 @@ async def create_tank(tank_request: Tank):
     created_tank = await profile_db["tank"].insert_one(tank_dictionary)
 
     tank = await profile_db["tank"].find_one({"_id":created_tank.inserted_id})
-    Profile.last_updated = datetime.now()
+    # Profile.last_updated = datetime.now()
+    profile_db["profiles"].update_many(
+            {"active": True},  # Filter for active profiles
+            {"$set": {"last_updated": datetime.now()}}  )
     temp = Tank(**tank)
     tank_json = jsonable_encoder(temp)
     return JSONResponse(tank_json, status_code=201)
@@ -106,7 +114,10 @@ async def remove_tank(tank_id:str):
     search_tank = await profile_db["tank"].find_one({"_id":ObjectId(tank_id)})
     if search_tank:
        await profile_db["tank"].delete_one({"_id":ObjectId(tank_id)})
-       Profile.last_updated = datetime.now()
+    #    Profile.last_updated = datetime.now()
+       profile_db["profiles"].update_many(
+            {"active": True},  # Filter for active profiles
+            {"$set": {"last_updated": datetime.now()}}  )
        return Response(status_code=200)
     
     raise HTTPException(status_code=404,detail="tank not found")
